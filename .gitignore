@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Local datasets and generated artifacts
+data/*.json
+data/*.csv
+artifacts/
+checkpoints/
+
+# Model/data arrays
+*.npy
+*.npz
+*.h5
+*.keras
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
