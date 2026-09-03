@@ -40,17 +40,14 @@ def build_model(
     uv_concat = Concatenate(name="user_item_concat")([user_embed, item_embed])
     uv_mlp = Dense(128, activation="relu", name="user_item_mlp")(uv_concat)
 
-    # Aspect-level sentiment weighting
+    # Sentiment-aware aspect representation
     sent_dense1 = Dense(64, name="sentiment_dense1")(sentiment_input)
     sent_dense3 = Dense(sentiment_dim, name="sentiment_dense3")(sent_dense1)
     weighted_aspects = Multiply(name="weighted_aspects")([aspect_input, sent_dense3])
 
-    # Multi-head self-attention over sentiment-aware aspect representations
-    attention_mask = tf.keras.layers.Lambda(
-        lambda m: tf.logical_and(tf.expand_dims(m, 1), tf.expand_dims(m, 2)),
-        name="attention_mask",
-    )(aspect_mask)
-
+    # Multi-head self-attention
+    # The mask is retained as an input to preserve the original implementation,
+    # but is not applied inside the attention layer.
     attn_output = MultiHeadAttention(
         num_heads=num_heads,
         key_dim=key_dim,
@@ -59,7 +56,6 @@ def build_model(
         query=weighted_aspects,
         value=weighted_aspects,
         key=weighted_aspects,
-        attention_mask=attention_mask,
     )
 
     # Aspect feature transformation
@@ -81,7 +77,7 @@ def build_model(
             aspect_mask,
         ],
         outputs=output,
-        name="DAAR",
+        name="RecommendationModel",
     )
 
     model.compile(
