@@ -17,6 +17,7 @@ def main(test_path, model_path):
         data["item_ids"],
         data["aspect_embeddings"],
         data["sentiment_probs"],
+        data["aspect_mask"],
     ]
     y_test = data["ratings"]
 
