@@ -41,7 +41,7 @@ def main(config_path):
         "sentiments",
     ]
 
-    # The notebook encodes IDs before the random train/test split.
+    # IDs are encoded before the random train/test split, matching the notebook.
     df, user_encoder, item_encoder = encode_ids(df)
 
     split_cfg = config["preprocessing"]
@@ -51,8 +51,14 @@ def main(config_path):
         random_state=split_cfg["random_state"],
     )
 
-    k_max = split_cfg["k_max"]
+    # K_max is determined during preprocessing by the 75th percentile and the
+    # aspect lists are already truncated before embeddings/sentiments are made.
+    # Training therefore only reads the resulting maximum sequence length and
+    # zero-pads shorter samples to that length.
+    k_max = max(df["aspects"].map(len).max(), 1)
     embedding_dim = split_cfg["aspect_embedding_dim"]
+    print(f"Using preprocessed K_max: {k_max}")
+
     x_train, y_train = preprocess(train_df, k_max, embedding_dim)
     x_test, y_test = preprocess(test_df, k_max, embedding_dim)
 
@@ -103,7 +109,6 @@ def main(config_path):
         ratings=y_test,
     )
 
-    # Save encoder classes for reproducibility.
     with open("artifacts/id_encoders.json", "w", encoding="utf-8") as f:
         json.dump(
             {
