@@ -6,9 +6,7 @@ DAAR extracts aspect terms from review text using LLaMA 3.1, represents the extr
 
 ## Overview
 
-<p align="center">
-  <img src="model/DAAR_Framework.webp" alt="DAAR Framework" width="800">
-</p>
+DAAR consists of aspect term extraction, aspect representation, multi-head attention, and rating prediction stages.
 
 ## Requirements
 
@@ -38,9 +36,7 @@ DAAR/
 ├── data/
 │   └── README.md
 ├── model/
-│   ├── daar.py
-│   ├── DAAR_Framework.webp
-│   └── DAAR_Architecture.webp
+│   └── daar.py
 ├── preprocessing/
 │   ├── extract_aspects.py
 │   ├── postprocess_aspects.py
@@ -129,10 +125,6 @@ yangheng/deberta-v3-base-absa-v1.1
 For each aspect term, the three-class sentiment probabilities are used as the sentiment representation.
 
 ## Model
-
-<p align="center">
-  <img src="model/DAAR_Architecture.webp" alt="DAAR Architecture" width="700">
-</p>
 
 DAAR uses user and item IDs together with Phrase-BERT aspect embeddings and aspect-level sentiment probabilities. The sentiment probabilities are transformed into 768-dimensional vectors and combined with the corresponding aspect embeddings through element-wise multiplication. Multi-head attention is then applied to the sentiment-aware aspect representations, with an attention mask excluding zero-padded aspect positions. The resulting representation is concatenated with the user-item interaction representation for final rating prediction.
 
