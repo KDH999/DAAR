@@ -23,13 +23,7 @@ def build_model(
     attention_key_dim=128,
     learning_rate=1e-4,
 ):
-    """Build the DAAR rating-prediction model.
-
-    The implementation follows the TensorFlow experiment notebook used for the
-    paper. Aspect sequences are zero-padded to ``k_max`` before entering the
-    model. Padding positions are not masked inside the attention layer, which
-    matches the original experimental implementation.
-    """
+    """Build the DAAR rating-prediction model."""
 
     user_input = Input(shape=(), dtype=tf.int32, name="user_input")
     item_input = Input(shape=(), dtype=tf.int32, name="item_input")
@@ -44,7 +38,6 @@ def build_model(
         name="sentiment_input",
     )
 
-    # User-item interaction representation
     user_embedding = Embedding(
         num_users,
         user_item_embedding_dim,
@@ -60,7 +53,6 @@ def build_model(
     )
     user_item = Dense(128, activation="relu", name="user_item_mlp")(user_item)
 
-    # Continuous sentiment reflection
     sentiment_features = Dense(
         sentiment_hidden_dim,
         name="sentiment_dense1",
@@ -73,7 +65,6 @@ def build_model(
         [aspect_input, sentiment_features]
     )
 
-    # Multi-head self-attention over sentiment-aware aspect representations
     attention_output = MultiHeadAttention(
         num_heads=num_attention_heads,
         key_dim=attention_key_dim,
@@ -91,7 +82,6 @@ def build_model(
         name="flat_dense2",
     )(aspect_features)
 
-    # Final rating prediction
     features = Concatenate(name="final_concat")([user_item, aspect_features])
     features = Dense(128, activation="relu", name="final_dense1")(features)
     features = Dense(32, activation="relu", name="final_dense2")(features)
