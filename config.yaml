@@ -8,14 +8,14 @@ data:
   sentiment_column: "sentiments"
 
 preprocessing:
-  k_percentile: 75
+  k_max: 7
   aspect_embedding_dim: 768
   test_size: 0.20
   validation_split: 0.125
   random_state: 42
 
 model:
-  user_item_embedding_dim: 256
+  user_item_embedding_dim: 128
   sentiment_hidden_dim: 64
   num_attention_heads: 6
   attention_key_dim: 128
@@ -23,7 +23,8 @@ model:
 
 training:
   epochs: 100
-  batch_size: 32
+  batch_size: 64
   early_stopping_patience: 5
   early_stopping_min_delta: 0.0001
   model_path: "checkpoints/daar.keras"
+  test_artifact_path: "artifacts/test_data.npz"
