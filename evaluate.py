@@ -17,7 +17,6 @@ def main(test_path, model_path):
         data["item_ids"],
         data["aspect_embeddings"],
         data["sentiment_probs"],
-        data["aspect_mask"],
     ]
     y_test = data["ratings"]
 
@@ -40,5 +39,4 @@ if __name__ == "__main__":
     parser.add_argument("--test-data", default="artifacts/test_data.npz")
     parser.add_argument("--model", default="checkpoints/daar.keras")
     args = parser.parse_args()
-
     main(args.test_data, args.model)
