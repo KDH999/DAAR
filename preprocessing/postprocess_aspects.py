@@ -8,7 +8,6 @@ from tqdm import tqdm
 
 
 def clean_aspects(row, nlp, text_column="text"):
-    """Filter extracted aspect terms using the rules in the experiment notebook."""
     text = row[text_column]
     aspects = row.get("aspects", [])
 
@@ -26,7 +25,6 @@ def clean_aspects(row, nlp, text_column="text"):
         if not aspect_lower or aspect_lower not in text_lower:
             continue
 
-        # Single-word terms are retained only when spaCy identifies a noun.
         if " " not in aspect_lower:
             doc = nlp(aspect_lower)
             if not any(token.pos_ == "NOUN" for token in doc):
@@ -37,22 +35,29 @@ def clean_aspects(row, nlp, text_column="text"):
     return valid
 
 
-def core_filtering_once(df, user_column, item_column, min_count=5):
-    """Apply the user-then-item filtering used in the supplied notebook."""
+def core_filtering(df, user_column, item_column, min_count=5):
     user_counts = df[user_column].value_counts()
     valid_users = user_counts[user_counts >= min_count].index
     df = df[df[user_column].isin(valid_users)]
 
     item_counts = df[item_column].value_counts()
     valid_items = item_counts[item_counts >= min_count].index
-    return df[df[item_column].isin(valid_items)]
+    df = df[df[item_column].isin(valid_items)]
+
+    return df
 
 
 def main(args):
     nlp = spacy.load(args.spacy_model)
     df = pd.read_json(args.input, lines=args.lines)
 
-    required = [args.user_column, args.item_column, args.rating_column, args.text_column, "aspects"]
+    required = [
+        args.user_column,
+        args.item_column,
+        args.rating_column,
+        args.text_column,
+        "aspects",
+    ]
     missing = [column for column in required if column not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
@@ -63,19 +68,7 @@ def main(args):
         axis=1,
     )
 
-    # Reviews with no valid aspect terms are removed after ATE postprocessing.
     df = df[df["aspects"].map(len) > 0].reset_index(drop=True)
-
-    # The supplied Baby notebook first applies 5-core filtering, then removes
-    # duplicate review records, and finally reapplies 5-core filtering because
-    # duplicate removal can reduce user/item interaction counts.
-    if args.five_core:
-        df = core_filtering_once(
-            df,
-            user_column=args.user_column,
-            item_column=args.item_column,
-            min_count=args.min_count,
-        ).reset_index(drop=True)
 
     if args.drop_duplicates:
         subset = [
@@ -86,33 +79,30 @@ def main(args):
         ]
         df = df.drop_duplicates(subset=subset, keep="first").reset_index(drop=True)
 
-        if args.five_core:
-            df = core_filtering_once(
-                df,
-                user_column=args.user_column,
-                item_column=args.item_column,
-                min_count=args.min_count,
-            ).reset_index(drop=True)
+    if args.five_core:
+        df = core_filtering(
+            df,
+            user_column=args.user_column,
+            item_column=args.item_column,
+            min_count=args.min_count,
+        ).reset_index(drop=True)
 
     aspect_counts = df["aspects"].map(len).to_numpy()
     if len(aspect_counts) == 0:
         raise ValueError("No reviews remain after postprocessing.")
 
     if args.k_max is None:
-        percentile_value = np.percentile(aspect_counts, args.percentile)
-        k_max = max(1, int(np.ceil(percentile_value)))
+        k_max = max(
+            1,
+            int(np.ceil(np.percentile(aspect_counts, args.percentile))),
+        )
     else:
-        percentile_value = None
         k_max = args.k_max
 
-    # Truncation is completed before Phrase-BERT and DeBERTa inference.
     df["aspects"] = df["aspects"].apply(lambda values: values[:k_max])
 
     print(f"Rows after postprocessing: {len(df):,}")
-    if percentile_value is not None:
-        print(f"{args.percentile:g}th percentile: {percentile_value:.4f}")
     print(f"K_max: {k_max}")
-    print(f"Mean aspect count before truncation: {aspect_counts.mean():.2f}")
 
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
     df.to_json(args.output, orient="records", indent=2, force_ascii=False)
