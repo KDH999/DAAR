@@ -2,7 +2,7 @@
 
 Official implementation of **DAAR: Domain-Agnostic Aspect-Aware Recommendation**.
 
-DAAR extracts domain-agnostic aspect terms from review text with an instruction-tuned LLM, represents the extracted phrases with Phrase-BERT, incorporates aspect-level sentiment probabilities, and predicts user ratings with a multi-head attention based recommendation model.
+DAAR extracts aspect terms from review text with an instruction-tuned LLM, represents the retained phrases with Phrase-BERT, incorporates aspect-level sentiment probabilities, and predicts user ratings with a multi-head-attention-based recommendation model.
 
 ## Pipeline
 
@@ -11,9 +11,14 @@ Review text
    │
    ├─ 1. LLM-based Aspect Term Extraction
    │
-   ├─ 2. Aspect postprocessing + 5-core filtering
+   ├─ 2. Aspect postprocessing
+   │      ├─ remove invalid aspect terms
+   │      ├─ remove empty reviews
+   │      ├─ 5-core filtering
+   │      ├─ duplicate removal
+   │      ├─ 5-core filtering again
    │      └─ determine K_max from the 75th percentile
-   │         and truncate aspect lists before representation learning
+   │         and truncate aspect lists
    │
    ├─ 3. Phrase-BERT aspect embeddings
    │
@@ -26,7 +31,7 @@ Review text
           └─ MLP rating prediction
 ```
 
-The 75th-percentile truncation is performed during preprocessing. The recommendation model does **not** select or truncate aspect terms again. It only zero-pads shorter aspect sequences to the maximum length already present in the preprocessed data so that samples can be batched into fixed-size tensors.
+The 75th-percentile truncation is completed during preprocessing, before Phrase-BERT embedding and DeBERTa sentiment inference. The recommendation model does **not** select or truncate aspect terms again. It only zero-pads shorter sequences to the maximum length present in the already-truncated input data so that samples can be batched into fixed-size tensors.
 
 ## Repository structure
 
@@ -53,14 +58,14 @@ DAAR/
 
 ## Environment
 
-The code was implemented in Python with TensorFlow for recommendation and PyTorch/Transformers for text preprocessing.
+The recommendation model is implemented in TensorFlow. LLM-based ATE and aspect-level sentiment inference use PyTorch and Hugging Face Transformers.
 
 ```bash
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 ```
 
-The LLaMA checkpoint requires Hugging Face access. Set your token as an environment variable instead of writing it in source code:
+The LLaMA checkpoint requires Hugging Face access. Set the access token as an environment variable instead of writing it in source code:
 
 ```bash
 export HF_TOKEN=YOUR_TOKEN
@@ -74,18 +79,13 @@ $env:HF_TOKEN="YOUR_TOKEN"
 
 ## Data
 
-The experiments use review data containing at least the following fields before preprocessing:
+The experiments use review data containing user IDs, item IDs, ratings, and review text. The exact item/rating column names differ between datasets (for example, Amazon uses `asin`).
 
-- `user_id`: user identifier
-- `asin`: item identifier
-- `rating`: observed rating
-- `text`: review text
+The final model input additionally contains:
 
-The final model input JSON additionally contains:
-
-- `aspects`: extracted and postprocessed aspect terms
-- `embeddings`: Phrase-BERT vectors for the retained aspect terms
-- `sentiments`: three-dimensional sentiment probability vectors for each aspect
+- `aspects`: retained aspect terms after postprocessing and 75th-percentile truncation
+- `embeddings`: corresponding 768-dimensional Phrase-BERT vectors
+- `sentiments`: corresponding three-dimensional sentiment probability vectors
 
 Raw datasets are not redistributed in this repository. See `data/README.md` for dataset information.
 
@@ -93,36 +93,54 @@ Raw datasets are not redistributed in this repository. See `data/README.md` for 
 
 ### 1. Aspect term extraction
 
+The supplied ATE experiment notebook loads:
+
+```text
+meta-llama/Meta-Llama-3-8B-Instruct
+```
+
+with 4-bit NF4 quantization, double quantization, FP16 computation, and deterministic generation (`do_sample=False`, `max_new_tokens=100`). The extraction prompt in `preprocessing/extract_aspects.py` follows the prompt used in the notebook.
+
+Example:
+
 ```bash
 python preprocessing/extract_aspects.py \
   --input data/Baby_Products.jsonl \
   --output data/Baby_Products_ate.json \
-  --lines
+  --lines \
+  --remove-punctuation
 ```
 
-The extraction script uses an instruction-tuned LLaMA model in 4-bit quantization with deterministic decoding (`do_sample=False`).
+`--remove-punctuation` reproduces the explicit punctuation-removal step in the supplied ATE notebook. If additional dataset normalization was performed before the notebook input file was created, it should be reproduced during dataset preparation rather than inferred by this script.
 
 ### 2. Postprocessing and 75th-percentile truncation
+
+Example for Amazon Baby:
 
 ```bash
 python preprocessing/postprocess_aspects.py \
   --input data/Baby_Products_ate.json \
   --output data/Baby_Products_postprocessed.json \
+  --user-column user_id \
+  --item-column asin \
+  --rating-column rating \
   --five-core \
   --drop-duplicates \
   --percentile 75
 ```
 
-Postprocessing follows the experimental notebook:
+The supplied Baby postprocessing notebook performs the following operations:
 
 1. Remove extracted terms that do not occur in the source review.
-2. For single-word terms, retain noun terms based on spaCy POS tagging.
+2. For single-word terms, retain terms identified as nouns by spaCy (`en_core_web_sm`).
 3. Remove reviews with no remaining aspect terms.
-4. Remove duplicate interactions and apply 5-core filtering.
-5. Compute the 75th percentile of the number of aspect terms per review.
-6. Truncate reviews exceeding this value while retaining all shorter reviews.
+4. Apply user/item 5-core filtering.
+5. Remove duplicate review records.
+6. Reapply 5-core filtering after duplicate removal.
+7. Determine `K_max` from the 75th percentile of the retained aspect-count distribution.
+8. Truncate reviews exceeding `K_max` while retaining all shorter reviews.
 
-For the Baby experiment, the resulting maximum retained aspect length was **7**.
+For the supplied Baby preprocessing notebook, the retained maximum aspect length is **7**.
 
 ### 3. Phrase-BERT embeddings
 
@@ -132,7 +150,13 @@ python preprocessing/embed_aspects.py \
   --output data/Baby_Products_embeddings.json
 ```
 
-The default checkpoint is `whaleloops/phrase-bert`, producing 768-dimensional aspect-term representations.
+The default checkpoint is:
+
+```text
+whaleloops/phrase-bert
+```
+
+which produces 768-dimensional aspect-term representations.
 
 ### 4. Aspect-level sentiment probabilities
 
@@ -142,43 +166,60 @@ python preprocessing/sentiment_analysis.py \
   --output data/Baby_Products_final.json
 ```
 
-The default sentiment checkpoint is `yangheng/deberta-v3-base-absa-v1.1`. For each aspect-review pair, the three-class softmax probabilities are retained and used directly by DAAR rather than reducing them to a discrete polarity label.
+The sentiment checkpoint is:
+
+```text
+yangheng/deberta-v3-base-absa-v1.1
+```
+
+For each aspect term, the notebook constructs `aspect [SEP] review`, applies softmax to the three output logits, rounds the probabilities to four decimal places, and retains the probability vector as the sentiment representation.
 
 ## Model
 
-DAAR takes four inputs:
+DAAR takes four effective inputs:
 
 1. encoded user ID
 2. encoded item ID
 3. Phrase-BERT aspect representations
 4. aspect-level sentiment probability vectors
 
-The sentiment probability vector is transformed through fully connected layers and multiplied element-wise with the corresponding aspect representation. Multi-head self-attention then aggregates the sentiment-aware aspect representations. The resulting review representation is concatenated with the user-item interaction representation for rating prediction.
+The three-dimensional sentiment vector is transformed through `Dense(64)` and `Dense(768)` layers and multiplied element-wise with the corresponding aspect embedding. Multi-head self-attention is then applied to the sentiment-aware aspect representations. The flattened attention output is transformed and concatenated with the user-item interaction representation for final rating prediction.
 
-Padding is used only to construct fixed-size batch tensors. No attention mask is applied to padded positions in the released implementation, matching the original experimental code.
+The released implementation uses:
+
+- user/item embedding dimension: 128
+- sentiment hidden dimension: 64
+- multi-head attention heads: 6
+- attention key dimension: 128
+- aspect representation dimension: 768
+- aspect feature layer: 1024
+- final prediction MLP: 128 → 32 → 1
+
+### Padding and mask
+
+Zero-padding is used only to create fixed-size batch tensors. The supplied TensorFlow notebook constructs an `aspect_mask` array, but that mask is **not passed to `MultiHeadAttention`**. Therefore, the released model omits the unused mask input rather than implying that padded positions were masked during attention.
 
 ## Training
 
-Set the final preprocessed dataset path in `config.yaml` and run:
+Set the final preprocessed dataset path and column names in `config.yaml`, then run:
 
 ```bash
 python train.py --config config.yaml
 ```
 
-Default Baby experiment settings in `config.yaml` include:
+The default Baby settings are:
 
 - train/test split: 80/20 with `random_state=42`
-- validation split: 0.125 of the training portion, yielding an overall 7:1:2 split
+- validation split: 0.125 of the training portion (overall 7:1:2)
 - user/item embedding dimension: 128
-- aspect embedding dimension: 768
-- attention heads: 6
-- attention key dimension: 128
 - learning rate: 1e-4
 - batch size: 64
 - maximum epochs: 100
 - early-stopping patience: 5
 
-The trained model is saved under `checkpoints/`, and the exact held-out test tensors are saved under `artifacts/`.
+`train.py` performs **one training run**. The manuscript reports results averaged over five runs, so reproduction of the reported mean requires executing the experiment five times under the same experimental protocol and averaging the resulting metrics.
+
+The trained model is saved under `checkpoints/`, and the held-out test tensors are saved under `artifacts/`.
 
 ## Evaluation
 
@@ -188,11 +229,13 @@ python evaluate.py \
   --model checkpoints/daar.keras
 ```
 
-The script reports MAE, MSE, RMSE, and MAPE.
+The script reports MAE, MSE, RMSE, and MAPE. The manuscript uses MAE and RMSE as the principal evaluation metrics.
 
-## Notes on reproducibility
+## Reproducibility notes
 
-The scripts in this repository are organized versions of the experimental notebooks used to develop DAAR. Dataset paths, access tokens, intermediate files, and machine-specific paths have been removed from the public code. Preprocessing and model hyperparameters are exposed through command-line arguments or `config.yaml` where appropriate.
+The scripts in this repository are organized versions of the supplied experimental notebooks. Machine-specific absolute paths and access tokens have been removed. Refactoring is limited to separating notebook stages into reusable scripts, exposing paths/column names as arguments, and removing an unused attention-mask input from the model interface.
+
+Where a manuscript statement and the supplied executable notebook differ, the repository follows the supplied notebook implementation. Such differences should be resolved in the manuscript before publication.
 
 ## Citation
 
