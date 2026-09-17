@@ -7,6 +7,8 @@ from tensorflow.keras.layers import (
     Input,
     MultiHeadAttention,
     Multiply,
+    Permute,
+    RepeatVector,
 )
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
@@ -37,6 +39,11 @@ def build_model(
         dtype=tf.float32,
         name="sentiment_input",
     )
+    aspect_mask_input = Input(
+        shape=(k_max,),
+        dtype=tf.float32,
+        name="aspect_mask",
+    )
 
     user_embedding = Embedding(
         num_users,
@@ -65,6 +72,11 @@ def build_model(
         [aspect_input, sentiment_features]
     )
 
+    # Mask both padded query and key positions during self-attention.
+    key_mask = RepeatVector(k_max, name="key_mask_repeat")(aspect_mask_input)
+    query_mask = Permute((2, 1), name="query_mask_transpose")(key_mask)
+    attention_mask = Multiply(name="attention_mask")([key_mask, query_mask])
+
     attention_output = MultiHeadAttention(
         num_heads=num_attention_heads,
         key_dim=attention_key_dim,
@@ -73,6 +85,17 @@ def build_model(
         query=weighted_aspects,
         value=weighted_aspects,
         key=weighted_aspects,
+        attention_mask=attention_mask,
+    )
+
+    # Keep padded query positions at zero before flattening.
+    output_mask = RepeatVector(
+        aspect_embedding_dim,
+        name="output_mask_repeat",
+    )(aspect_mask_input)
+    output_mask = Permute((2, 1), name="output_mask_transpose")(output_mask)
+    attention_output = Multiply(name="masked_attention_output")(
+        [attention_output, output_mask]
     )
 
     aspect_features = Flatten(name="flatten_attention_output")(attention_output)
@@ -88,7 +111,13 @@ def build_model(
     output = Dense(1, activation="linear", name="output")(features)
 
     model = Model(
-        inputs=[user_input, item_input, aspect_input, sentiment_input],
+        inputs=[
+            user_input,
+            item_input,
+            aspect_input,
+            sentiment_input,
+            aspect_mask_input,
+        ],
         outputs=output,
         name="DAAR",
     )
