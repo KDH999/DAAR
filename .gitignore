@@ -5,7 +5,9 @@ __pycache__/
 
 # Local datasets and generated artifacts
 data/*.json
+data/*.jsonl
 data/*.csv
+data/*.parquet
 artifacts/
 checkpoints/
 
@@ -14,6 +16,11 @@ checkpoints/
 *.npz
 *.h5
 *.keras
+
+# Credentials / local environment
+.env
+.env.*
+*.token
 
 # IDE / OS
 .vscode/
