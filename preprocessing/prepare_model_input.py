@@ -14,13 +14,7 @@ def encode_ids(df):
 
 
 def preprocess(df, k_max, embedding_dim=768):
-    """Convert a dataframe into fixed-size DAAR model inputs.
-
-    Aspect and sentiment sequences longer than ``k_max`` are truncated.
-    Shorter sequences are zero-padded so every sample in a batch has the same
-    tensor shape. The original experimental implementation did not apply an
-    attention mask to padded positions.
-    """
+    """Convert a dataframe into fixed-size DAAR model inputs."""
     user_ids = np.asarray(df["user_id"].tolist(), dtype=np.int32)
     item_ids = np.asarray(df["asin"].tolist(), dtype=np.int32)
     ratings = np.asarray(df["rating"].tolist(), dtype=np.float32)
