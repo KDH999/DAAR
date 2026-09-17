@@ -36,7 +36,7 @@ def parse_aspects(output_text):
     for candidate in re.findall(r"\[.*?\]", output_text, re.DOTALL):
         try:
             parsed = json.loads(candidate)
-            if isinstance(parsed, list) and not is_placeholder(parsed):
+            if isinstance(parsed, list) and parsed and not is_placeholder(parsed):
                 return [x.strip() for x in parsed if isinstance(x, str) and x.strip()]
         except json.JSONDecodeError:
             pass
@@ -64,13 +64,20 @@ def parse_aspects(output_text):
     return result
 
 
+def remove_punctuation(text):
+    if isinstance(text, str):
+        return text.translate(str.maketrans("", "", string.punctuation))
+    return text
+
+
 def load_model(model_id):
-    token = os.getenv("HF_TOKEN")
+    token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_HUB_TOKEN")
     quantization_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_use_double_quant=True,
         bnb_4bit_compute_dtype=torch.float16,
+        llm_int8_enable_fp32_cpu_offload=True,
     )
 
     tokenizer = AutoTokenizer.from_pretrained(
@@ -97,12 +104,11 @@ def load_model(model_id):
 
 def main(args):
     df = pd.read_json(args.input, lines=args.lines)
+    if args.text_column not in df.columns:
+        raise ValueError(f"Missing text column: {args.text_column}")
+
     if args.remove_punctuation:
-        df[args.text_column] = df[args.text_column].apply(
-            lambda x: x.translate(str.maketrans("", "", string.punctuation))
-            if isinstance(x, str)
-            else x
-        )
+        df[args.text_column] = df[args.text_column].apply(remove_punctuation)
 
     tokenizer, model = load_model(args.model_id)
     embed_device = model.get_input_embeddings().weight.device
@@ -150,7 +156,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model-id",
         default="meta-llama/Meta-Llama-3-8B-Instruct",
-        help="Checkpoint used in the supplied ATE notebook.",
+        help="Checkpoint used in the supplied ATE experiment notebook.",
     )
     parser.add_argument("--max-new-tokens", type=int, default=100)
     parser.add_argument("--lines", action="store_true")
