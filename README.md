@@ -2,30 +2,13 @@
 
 Official implementation of **DAAR (Domain-Agnostic Aspect-Aware Recommendation)**.
 
-DAAR extracts aspect terms from review text using LLaMA, represents the extracted terms with Phrase-BERT and aspect-level sentiment probabilities, and combines them with user-item interactions for rating prediction.
+DAAR extracts aspect terms from review text using LLaMA 3.1, represents the extracted terms with Phrase-BERT and aspect-level sentiment probabilities, and combines them with user-item interactions for rating prediction.
 
 ## Overview
 
-```text
-Review dataset
-    ↓
-LLaMA 3.1-8B-Instruct
-Aspect Term Extraction
-    ↓
-Aspect Postprocessing
-    ↓
-5-core Filtering
-    ↓
-75th-percentile Truncation
-    ↓
-Phrase-BERT Embedding
-    ↓
-DeBERTa Sentiment Analysis
-    ↓
-DAAR
-    ↓
-Rating Prediction
-```
+<p align="center">
+  <img src="model/DAAR_Framework.png" alt="DAAR Framework" width="850">
+</p>
 
 ## Requirements
 
@@ -55,7 +38,9 @@ DAAR/
 ├── data/
 │   └── README.md
 ├── model/
-│   └── daar.py
+│   ├── daar.py
+│   ├── DAAR_Framework.png
+│   └── DAAR_Architecture.png
 ├── preprocessing/
 │   ├── extract_aspects.py
 │   ├── postprocess_aspects.py
@@ -145,14 +130,11 @@ For each aspect term, the three-class sentiment probabilities are used as the se
 
 ## Model
 
-DAAR uses four inputs:
+<p align="center">
+  <img src="model/DAAR_Architecture.png" alt="DAAR Architecture" width="850">
+</p>
 
-- user ID
-- item ID
-- Phrase-BERT aspect embeddings
-- aspect-level sentiment probabilities
-
-The sentiment probabilities are transformed into 768-dimensional vectors and combined with the corresponding aspect embeddings through element-wise multiplication. Multi-head attention is then applied to the sentiment-aware aspect representations. The resulting representation is concatenated with the user-item interaction representation for final rating prediction.
+DAAR uses user and item IDs together with Phrase-BERT aspect embeddings and aspect-level sentiment probabilities. The sentiment probabilities are transformed into 768-dimensional vectors and combined with the corresponding aspect embeddings through element-wise multiplication. Multi-head attention is then applied to the sentiment-aware aspect representations, with an attention mask excluding zero-padded aspect positions. The resulting representation is concatenated with the user-item interaction representation for final rating prediction.
 
 Default model settings are provided in `config.yaml`.
 
