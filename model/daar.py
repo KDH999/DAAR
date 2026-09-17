@@ -1,12 +1,12 @@
 import tensorflow as tf
 from tensorflow.keras.layers import (
-    Input,
-    Embedding,
-    Dense,
-    Multiply,
     Concatenate,
+    Dense,
+    Embedding,
     Flatten,
+    Input,
     MultiHeadAttention,
+    Multiply,
 )
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
@@ -16,41 +16,67 @@ def build_model(
     num_users,
     num_items,
     k_max,
-    sentiment_dim=768,
-    embedding_dim=256,
+    aspect_embedding_dim=768,
+    user_item_embedding_dim=128,
+    sentiment_hidden_dim=64,
+    num_attention_heads=6,
+    attention_key_dim=128,
     learning_rate=1e-4,
-    num_heads=6,
-    key_dim=128,
 ):
-    """Build the DAAR rating prediction model."""
+    """Build the DAAR rating-prediction model.
+
+    The implementation follows the TensorFlow experiment notebook used for the
+    paper. Aspect sequences are zero-padded to ``k_max`` before entering the
+    model. Padding positions are not masked inside the attention layer, which
+    matches the original experimental implementation.
+    """
 
     user_input = Input(shape=(), dtype=tf.int32, name="user_input")
     item_input = Input(shape=(), dtype=tf.int32, name="item_input")
     aspect_input = Input(
-        shape=(k_max, sentiment_dim), dtype=tf.float32, name="aspect_input"
+        shape=(k_max, aspect_embedding_dim),
+        dtype=tf.float32,
+        name="aspect_input",
     )
     sentiment_input = Input(
-        shape=(k_max, 3), dtype=tf.float32, name="sentiment_input"
+        shape=(k_max, 3),
+        dtype=tf.float32,
+        name="sentiment_input",
     )
-    aspect_mask = Input(shape=(k_max,), dtype=tf.bool, name="aspect_mask")
 
     # User-item interaction representation
-    user_embed = Embedding(num_users, embedding_dim, name="user_embedding")(user_input)
-    item_embed = Embedding(num_items, embedding_dim, name="item_embedding")(item_input)
-    uv_concat = Concatenate(name="user_item_concat")([user_embed, item_embed])
-    uv_mlp = Dense(128, activation="relu", name="user_item_mlp")(uv_concat)
+    user_embedding = Embedding(
+        num_users,
+        user_item_embedding_dim,
+        name="user_embedding",
+    )(user_input)
+    item_embedding = Embedding(
+        num_items,
+        user_item_embedding_dim,
+        name="item_embedding",
+    )(item_input)
+    user_item = Concatenate(name="user_item_concat")(
+        [user_embedding, item_embedding]
+    )
+    user_item = Dense(128, activation="relu", name="user_item_mlp")(user_item)
 
-    # Sentiment-aware aspect representation
-    sent_dense1 = Dense(64, name="sentiment_dense1")(sentiment_input)
-    sent_dense3 = Dense(sentiment_dim, name="sentiment_dense3")(sent_dense1)
-    weighted_aspects = Multiply(name="weighted_aspects")([aspect_input, sent_dense3])
+    # Continuous sentiment reflection
+    sentiment_features = Dense(
+        sentiment_hidden_dim,
+        name="sentiment_dense1",
+    )(sentiment_input)
+    sentiment_features = Dense(
+        aspect_embedding_dim,
+        name="sentiment_dense3",
+    )(sentiment_features)
+    weighted_aspects = Multiply(name="weighted_aspects")(
+        [aspect_input, sentiment_features]
+    )
 
-    # Multi-head self-attention
-    # The mask is retained as an input to preserve the original implementation,
-    # but is not applied inside the attention layer.
-    attn_output = MultiHeadAttention(
-        num_heads=num_heads,
-        key_dim=key_dim,
+    # Multi-head self-attention over sentiment-aware aspect representations
+    attention_output = MultiHeadAttention(
+        num_heads=num_attention_heads,
+        key_dim=attention_key_dim,
         name="multihead_attention",
     )(
         query=weighted_aspects,
@@ -58,32 +84,27 @@ def build_model(
         key=weighted_aspects,
     )
 
-    # Aspect feature transformation
-    flat_output = Flatten(name="flatten_attention_output")(attn_output)
-    flat_dense2 = Dense(1024, activation="relu", name="flat_dense2")(flat_output)
+    aspect_features = Flatten(name="flatten_attention_output")(attention_output)
+    aspect_features = Dense(
+        1024,
+        activation="relu",
+        name="flat_dense2",
+    )(aspect_features)
 
-    # Rating prediction
-    final_concat = Concatenate(name="final_concat")([uv_mlp, flat_dense2])
-    final_dense1 = Dense(128, activation="relu", name="final_dense1")(final_concat)
-    final_dense2 = Dense(32, activation="relu", name="final_dense2")(final_dense1)
-    output = Dense(1, activation="linear", name="output")(final_dense2)
+    # Final rating prediction
+    features = Concatenate(name="final_concat")([user_item, aspect_features])
+    features = Dense(128, activation="relu", name="final_dense1")(features)
+    features = Dense(32, activation="relu", name="final_dense2")(features)
+    output = Dense(1, activation="linear", name="output")(features)
 
     model = Model(
-        inputs=[
-            user_input,
-            item_input,
-            aspect_input,
-            sentiment_input,
-            aspect_mask,
-        ],
+        inputs=[user_input, item_input, aspect_input, sentiment_input],
         outputs=output,
-        name="RecommendationModel",
+        name="DAAR",
     )
-
     model.compile(
         optimizer=Adam(learning_rate=learning_rate),
         loss="mse",
         metrics=["mse", "mae"],
     )
-
     return model
