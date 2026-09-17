@@ -41,7 +41,6 @@ def main(config_path):
         "sentiments",
     ]
 
-    # IDs are encoded before the random train/test split, matching the notebook.
     df, user_encoder, item_encoder = encode_ids(df)
 
     split_cfg = config["preprocessing"]
@@ -51,10 +50,6 @@ def main(config_path):
         random_state=split_cfg["random_state"],
     )
 
-    # K_max is determined during preprocessing by the 75th percentile and the
-    # aspect lists are already truncated before embeddings/sentiments are made.
-    # Training therefore only reads the resulting maximum sequence length and
-    # zero-pads shorter samples to that length.
     k_max = max(df["aspects"].map(len).max(), 1)
     embedding_dim = split_cfg["aspect_embedding_dim"]
     print(f"Using preprocessed K_max: {k_max}")
@@ -106,6 +101,7 @@ def main(config_path):
         item_ids=x_test[1],
         aspect_embeddings=x_test[2],
         sentiment_probs=x_test[3],
+        aspect_mask=x_test[4],
         ratings=y_test,
     )
 
