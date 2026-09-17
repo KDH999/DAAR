@@ -24,6 +24,7 @@ def preprocess(df, k_max, embedding_dim=768):
         dtype=np.float32,
     )
     sentiment_probs = np.zeros((len(df), k_max, 3), dtype=np.float32)
+    aspect_mask = np.zeros((len(df), k_max), dtype=np.float32)
 
     for i, (aspects, embeddings, sentiments) in enumerate(
         zip(df["aspects"], df["embeddings"], df["sentiments"])
@@ -58,11 +59,13 @@ def preprocess(df, k_max, embedding_dim=768):
 
         aspect_embeddings[i, :n] = embedding_array
         sentiment_probs[i, :n] = sentiment_array
+        aspect_mask[i, :n] = 1.0
 
     inputs = [
         user_ids,
         item_ids,
         aspect_embeddings,
         sentiment_probs,
+        aspect_mask,
     ]
     return inputs, ratings
