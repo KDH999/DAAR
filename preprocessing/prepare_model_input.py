@@ -14,7 +14,7 @@ def encode_ids(df):
 
 
 def preprocess(df, k_max, embedding_dim=768):
-    """Convert a dataframe into fixed-size DAAR model inputs."""
+    """Convert preprocessed DAAR data into fixed-size model inputs."""
     user_ids = np.asarray(df["user_id"].tolist(), dtype=np.int32)
     item_ids = np.asarray(df["asin"].tolist(), dtype=np.int32)
     ratings = np.asarray(df["rating"].tolist(), dtype=np.float32)
@@ -25,19 +25,39 @@ def preprocess(df, k_max, embedding_dim=768):
     )
     sentiment_probs = np.zeros((len(df), k_max, 3), dtype=np.float32)
 
-    for i, (embeddings, sentiments) in enumerate(
-        zip(df["embeddings"], df["sentiments"])
+    for i, (aspects, embeddings, sentiments) in enumerate(
+        zip(df["aspects"], df["embeddings"], df["sentiments"])
     ):
-        n = min(len(embeddings), len(sentiments), k_max)
+        n = len(aspects)
+
+        if len(embeddings) != n or len(sentiments) != n:
+            raise ValueError(
+                f"Mismatched aspect features at row {i}: "
+                f"aspects={n}, embeddings={len(embeddings)}, sentiments={len(sentiments)}"
+            )
+
+        if n > k_max:
+            raise ValueError(
+                f"Aspect sequence at row {i} exceeds preprocessed K_max={k_max}."
+            )
+
         if n == 0:
             continue
 
-        aspect_embeddings[i, :n] = np.asarray(
-            embeddings[:n], dtype=np.float32
-        )
-        sentiment_probs[i, :n] = np.asarray(
-            sentiments[:n], dtype=np.float32
-        )
+        embedding_array = np.asarray(embeddings, dtype=np.float32)
+        sentiment_array = np.asarray(sentiments, dtype=np.float32)
+
+        if embedding_array.shape != (n, embedding_dim):
+            raise ValueError(
+                f"Unexpected embedding shape at row {i}: {embedding_array.shape}"
+            )
+        if sentiment_array.shape != (n, 3):
+            raise ValueError(
+                f"Unexpected sentiment shape at row {i}: {sentiment_array.shape}"
+            )
+
+        aspect_embeddings[i, :n] = embedding_array
+        sentiment_probs[i, :n] = sentiment_array
 
     inputs = [
         user_ids,
