@@ -3,3 +3,10 @@ numpy
 pandas
 scikit-learn
 PyYAML
+torch
+transformers
+accelerate
+bitsandbytes
+sentence-transformers
+spacy
+tqdm
