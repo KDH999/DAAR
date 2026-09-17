@@ -155,8 +155,8 @@ if __name__ == "__main__":
     parser.add_argument("--text-column", default="text")
     parser.add_argument(
         "--model-id",
-        default="meta-llama/Meta-Llama-3-8B-Instruct",
-        help="Checkpoint used in the supplied ATE experiment notebook.",
+        default="meta-llama/Llama-3.1-8B-Instruct",
+        help="LLaMA checkpoint used for aspect term extraction.",
     )
     parser.add_argument("--max-new-tokens", type=int, default=100)
     parser.add_argument("--lines", action="store_true")
