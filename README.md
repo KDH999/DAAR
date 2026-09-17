@@ -6,7 +6,7 @@ DAAR extracts aspect terms from review text using LLaMA 3.1, represents the extr
 
 ## Overview
 
-DAAR consists of aspect term extraction, aspect representation, multi-head attention, and rating prediction stages.
+DAAR integrates LLM-based aspect term extraction, sentiment-aware aspect representation, multi-head attention, and user-item interaction modeling for rating prediction.
 
 ## Requirements
 
