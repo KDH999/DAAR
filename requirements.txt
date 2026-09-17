@@ -8,5 +8,6 @@ transformers
 accelerate
 bitsandbytes
 sentence-transformers
+sentencepiece
 spacy
 tqdm
