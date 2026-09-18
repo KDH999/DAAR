@@ -107,6 +107,25 @@ def main(args):
     if args.text_column not in df.columns:
         raise ValueError(f"Missing text column: {args.text_column}")
 
+    if args.drop_duplicates:
+        duplicate_subset = [
+            args.user_column,
+            args.item_column,
+            args.rating_column,
+            args.text_column,
+        ]
+        missing = [column for column in duplicate_subset if column not in df.columns]
+        if missing:
+            raise ValueError(
+                f"Missing columns required for duplicate removal: {missing}"
+            )
+        before = len(df)
+        df = df.drop_duplicates(
+            subset=duplicate_subset,
+            keep="first",
+        ).reset_index(drop=True)
+        print(f"Removed {before - len(df):,} duplicate reviews before ATE.")
+
     if args.remove_punctuation:
         df[args.text_column] = df[args.text_column].apply(remove_punctuation)
 
@@ -153,6 +172,10 @@ if __name__ == "__main__":
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--text-column", default="text")
+    parser.add_argument("--user-column", default="user_id")
+    parser.add_argument("--item-column", default="asin")
+    parser.add_argument("--rating-column", default="rating")
+    parser.add_argument("--drop-duplicates", action="store_true")
     parser.add_argument(
         "--model-id",
         default="meta-llama/Llama-3.1-8B-Instruct",
