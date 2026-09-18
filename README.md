@@ -65,6 +65,7 @@ python preprocessing/extract_aspects.py \
   --input data/Baby_Products.jsonl \
   --output data/Baby_Products_ate.json \
   --lines \
+  --drop-duplicates \
   --remove-punctuation
 ```
 
@@ -74,7 +75,7 @@ The default checkpoint is:
 meta-llama/Llama-3.1-8B-Instruct
 ```
 
-ATE is performed with 4-bit NF4 quantization, `do_sample=False`, and `max_new_tokens=100`.
+Duplicate review records are removed before text preprocessing and aspect term extraction. ATE is then performed with 4-bit NF4 quantization, `do_sample=False`, and `max_new_tokens=100`.
 
 ### 2. Aspect Postprocessing
 
@@ -85,12 +86,11 @@ python preprocessing/postprocess_aspects.py \
   --user-column user_id \
   --item-column asin \
   --rating-column rating \
-  --drop-duplicates \
   --five-core \
   --percentile 75
 ```
 
-Postprocessing removes extracted terms that do not occur in the source review and removes single-word terms that are not identified as nouns. Reviews with no remaining aspect terms are discarded. The dataset is then filtered using the 5-core criterion.
+Duplicate reviews have already been removed before ATE. Postprocessing removes extracted terms that do not occur in the source review and removes single-word terms that are not identified as nouns. Reviews with no remaining aspect terms are discarded. The dataset is then filtered using the 5-core criterion.
 
 The maximum aspect sequence length is determined by the 75th percentile of the aspect-term count distribution. Reviews exceeding this value are truncated before aspect representation is generated.
 
