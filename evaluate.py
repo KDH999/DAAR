@@ -4,7 +4,6 @@ import numpy as np
 import tensorflow as tf
 from sklearn.metrics import (
     mean_absolute_error,
-    mean_absolute_percentage_error,
     mean_squared_error,
 )
 
@@ -27,12 +26,10 @@ def main(test_path, model_path):
     mae = mean_absolute_error(y_test, predictions)
     mse = mean_squared_error(y_test, predictions)
     rmse = np.sqrt(mse)
-    mape = mean_absolute_percentage_error(y_test, predictions) * 100
 
     print(f"MAE: {mae:.3f}")
     print(f"MSE: {mse:.3f}")
     print(f"RMSE: {rmse:.3f}")
-    print(f"MAPE: {mape:.3f}%")
 
 
 if __name__ == "__main__":
