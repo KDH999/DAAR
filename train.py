@@ -90,11 +90,11 @@ def main(config_path):
     )
 
     model_path = training_cfg["model_path"]
-    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    os.makedirs(os.path.dirname(model_path) or ".", exist_ok=True)
     model.save(model_path)
 
     artifact_path = training_cfg["test_artifact_path"]
-    os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
+    os.makedirs(os.path.dirname(artifact_path) or ".", exist_ok=True)
     np.savez_compressed(
         artifact_path,
         user_ids=x_test[0],
@@ -105,7 +105,8 @@ def main(config_path):
         ratings=y_test,
     )
 
-    with open("artifacts/id_encoders.json", "w", encoding="utf-8") as f:
+    encoder_path = os.path.join(os.path.dirname(artifact_path) or ".", "id_encoders.json")
+    with open(encoder_path, "w", encoding="utf-8") as f:
         json.dump(
             {
                 "user_classes": user_encoder.classes_.tolist(),

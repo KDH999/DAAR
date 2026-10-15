@@ -1,8 +1,10 @@
+# Rating prediction and data handling
 tensorflow
 numpy
 pandas
 scikit-learn
 PyYAML
+# LLM extraction and aspect representation
 torch
 transformers
 accelerate

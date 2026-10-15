@@ -1,3 +1,5 @@
+"""DAAR network: user-item interactions and sentiment-aware aspect attention."""
+
 import tensorflow as tf
 from tensorflow.keras.layers import (
     Concatenate,

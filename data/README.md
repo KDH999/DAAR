@@ -1,30 +1,20 @@
 # Data
 
-The original Yelp and Amazon review datasets are not redistributed in this repository.
+The Amazon and Yelp raw datasets are **not included** in this repository.
 
-Before preprocessing, each interaction should contain:
+| Dataset | User ID | Item ID | Rating | Review text |
+| --- | --- | --- | --- | --- |
+| Amazon (Baby, Office) example | `user_id` | `asin` | `rating` | `text` |
+| Yelp review records | `user_id` | `business_id` | `stars` | `text` |
 
-```text
-user identifier
-item identifier
-rating
-review text
-```
+Column names depend on the downloaded dataset version. Rename columns or pass the corresponding arguments to the ATE and postprocessing scripts. For Yelp, select the Indiana restaurant-review subset before preprocessing.
 
-Column names can differ by dataset. For example, the Amazon experiments use `user_id`, `asin`, `rating`, and `text`; Yelp uses its corresponding user/item/rating columns.
+After preprocessing, each record also includes:
 
-After preprocessing, the final model input also contains:
+- `aspects`: retained aspect terms, truncated using the 75th percentile of aspect counts (`K_max`)
+- `embeddings`: corresponding 768-dimensional Phrase-BERT vectors
+- `sentiments`: corresponding three-dimensional sentiment probability vectors
 
-```text
-aspects
-embeddings
-sentiments
-```
+During training, sequences shorter than `K_max` are zero-padded and an aspect mask distinguishes valid positions.
 
-- `aspects`: aspect terms retained after ATE postprocessing and 75th-percentile truncation
-- `embeddings`: corresponding 768-dimensional Phrase-BERT embeddings
-- `sentiments`: corresponding three-dimensional DeBERTa sentiment-probability vectors
-
-`K_max` is determined during preprocessing from the 75th percentile of the aspect-count distribution after the filtering steps. Aspect lists longer than `K_max` are truncated before representation extraction. During model-input construction, shorter sequences are zero-padded to the retained maximum length.
-
-See the repository root `README.md` for the complete preprocessing and training commands.
+See the [root README](../README.md) for the complete pipeline and example commands.

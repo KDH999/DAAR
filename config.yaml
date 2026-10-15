@@ -1,3 +1,5 @@
+# Baby Products example; update data columns and path for other datasets.
+# K_max is selected by preprocessing/postprocess_aspects.py.
 data:
   path: "data/Baby_Products_final.json"
   user_column: "user_id"

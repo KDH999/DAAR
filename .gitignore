@@ -1,28 +1,26 @@
-# Python
+# Python and local environments
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+.pytest_cache/
+.venv/
+venv/
 
-# Local datasets and generated artifacts
-data/*.json
-data/*.jsonl
-data/*.csv
-data/*.parquet
+# Input data and generated artifacts
+data/*
+!data/README.md
 artifacts/
 checkpoints/
-
-# Model/data arrays
 *.npy
 *.npz
 *.h5
 *.keras
+*.log
 
-# Credentials / local environment
+# Credentials and editor files
 .env
 .env.*
 *.token
-
-# IDE / OS
 .vscode/
 .idea/
 .DS_Store

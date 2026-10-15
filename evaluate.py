@@ -1,3 +1,5 @@
+"""Evaluate a trained DAAR model on held-out review-rating examples."""
+
 import argparse
 
 import numpy as np
