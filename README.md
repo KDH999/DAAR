@@ -12,18 +12,13 @@ Official implementation of **Domain-Agnostic Aspect-Aware Recommendation (DAAR)*
 
 DAAR uses zero-shot LLM-based aspect term extraction (ATE) and aspect-level sentiment information to model fine-grained preferences without predefined aspect categories.
 
-```mermaid
-flowchart LR
-    R["Review text"] --> L["LLaMA 3.1<br/>Aspect extraction"]
-    L --> P["Aspect postprocessing"]
-    P --> B["Phrase-BERT<br/>Aspect embeddings"]
-    P --> S["DeBERTa<br/>Sentiment probabilities"]
-    B --> F["Sentiment-aware encoding<br/>Multi-head attention"]
-    S --> F
-    I["User and item IDs"] --> U["Interaction modeling"]
-    F --> O["Rating prediction"]
-    U --> O
-```
+### Overall Framework (Figure 2)
+
+![Figure 2. Overall framework of DAAR](assets/figure2_overall_framework.svg)
+
+### Recommender System Architecture (Figure 3)
+
+![Figure 3. Recommender system architecture of DAAR](assets/figure3_recommender_architecture.svg)
 
 ## Repository Structure
 
