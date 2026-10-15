@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 import re
-import string
+import unicodedata
 
 import pandas as pd
 import torch
@@ -65,9 +65,13 @@ def parse_aspects(output_text):
 
 
 def remove_punctuation(text):
-    if isinstance(text, str):
-        return text.translate(str.maketrans("", "", string.punctuation))
-    return text
+    if not isinstance(text, str):
+        return text
+    text = "".join(
+        " " if unicodedata.category(char)[0] in {"P", "S"} else char
+        for char in text
+    )
+    return " ".join(text.split())
 
 
 def load_model(model_id):
