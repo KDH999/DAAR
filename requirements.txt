@@ -1,15 +1,18 @@
-# Rating prediction and data handling
+# Data handling and rating prediction
 tensorflow
 numpy
 pandas
 scikit-learn
 PyYAML
-# LLM extraction and aspect representation
+
+# LLM-based aspect extraction and representation
 torch
 transformers
 accelerate
 bitsandbytes
 sentence-transformers
 sentencepiece
+
+# Aspect postprocessing and utilities
 spacy
 tqdm
