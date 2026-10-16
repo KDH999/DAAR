@@ -1,3 +1,5 @@
+"""Train DAAR and save the fitted model and held-out evaluation data."""
+
 import argparse
 import json
 import os
