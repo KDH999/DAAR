@@ -1,4 +1,4 @@
-"""Evaluate a trained DAAR model on held-out review-rating examples."""
+"""Evaluate a saved DAAR model on held-out data (MAE, MSE, RMSE)."""
 
 import argparse
 
