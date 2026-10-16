@@ -1,15 +1,18 @@
-# DAAR Model
+# Model Architecture
 
-`daar.py` implements the **DAAR rating-prediction network** described in Section 3.4 of the paper.
+The DAAR recommender system is implemented in [`daar.py`](daar.py).
 
-![DAAR recommender system architecture schematic](architecture.svg)
+<p align="center">
+  <img src="architecture.svg" alt="DAAR recommender system architecture" width="780">
+</p>
+<p align="center"><em>Figure 3. Recommender system architecture of DAAR.</em></p>
 
-| Module | Implementation |
+| Module | Description |
 | --- | --- |
-| User–item interaction | User and item ID embeddings, concatenation, and an MLP |
-| Sentiment-aware aspect encoding | Phrase-BERT aspect embeddings multiplied elementwise with projected 3-class sentiment probabilities; multi-head attention with a padding mask |
-| Rating prediction | Concatenation of the interaction and aspect representations, followed by an MLP and a linear rating output |
+| **User–Item Interaction** | User and item ID embeddings are concatenated and passed through an MLP. |
+| **Sentiment-Aware Aspect Encoding** | Phrase-BERT aspect vectors are multiplied by projected three-class sentiment probabilities, then processed with masked multi-head attention. |
+| **Rating Prediction** | Interaction and aspect representations are concatenated and passed through an MLP to predict the rating. |
 
-The model accepts encoded user IDs, item IDs, padded aspect embeddings, sentiment probabilities, and an aspect mask. `K_max` is determined by the 75th-percentile rule in `preprocessing/postprocess_aspects.py`; the model receives the resulting length from `train.py`.
+Inputs comprise encoded user/item IDs, padded aspect embeddings, sentiment probabilities, and an aspect mask. The maximum sequence length, `K_max`, is determined during aspect postprocessing using the 75th-percentile rule.
 
-The illustration above is a schematic rendering of the paper's recommender architecture. See [`../README.md`](../README.md) for setup, training, and evaluation.
+[← Back to the main README](../README.md)

@@ -1,119 +1,144 @@
+<div align="center">
+
 # DAAR
 
 **Leveraging Large Language Models for Domain-Agnostic Aspect-Aware Recommendation**
 
-Official implementation of **DAAR (Domain-Agnostic Aspect-Aware Recommendation)**, a review-based rating-prediction framework using LLM-extracted aspect terms and their sentiment information.
+Official implementation of **Domain-Agnostic Aspect-Aware Recommendation (DAAR)**
+
+[Overview](#overview) · [Architecture](#model-architecture) · [Getting Started](#getting-started) · [Results](#experimental-results) · [Citation](#citation)
+
+</div>
+
+---
 
 ## Overview
 
-DAAR extracts aspect terms from reviews using **LLaMA 3.1-8B-Instruct** and represents each term through **Phrase-BERT** embeddings and **DeBERTa** sentiment probabilities. A sentiment-aware attention module is combined with user–item interaction modeling to predict ratings.
+DAAR is a review-based rating prediction framework that uses large language models to identify **aspect terms** without predefined aspect categories. It combines their semantic representations and aspect-level sentiment scores with user–item interactions for personalized rating prediction.
 
 <p align="center">
-  <img src="assets/figure2_overall_framework.svg" alt="Overall DAAR framework schematic" width="900">
+  <img src="assets/figure2_overall_framework.svg" alt="Figure 2. Overall framework of DAAR" width="850">
 </p>
+<p align="center"><em>Figure 2. Overall framework of DAAR.</em></p>
 
 ## Model Architecture
 
-<p align="center">
-  <img src="model/architecture.svg" alt="DAAR recommender system architecture schematic" width="900">
-</p>
+The recommender system comprises three modules:
 
-The recommender system contains three modules: **user–item interaction**, **sentiment-aware aspect encoding**, and **rating prediction**. Implementation details are in [`model/`](model/README.md).
+1. **User–Item Interaction:** learns user and item representations from their IDs.
+2. **Sentiment-Aware Aspect Encoding:** combines Phrase-BERT aspect embeddings with DeBERTa sentiment probabilities and applies multi-head attention.
+3. **Rating Prediction:** integrates interaction and aspect representations through an MLP to predict ratings.
+
+<p align="center">
+  <img src="model/architecture.svg" alt="Figure 3. DAAR recommender system architecture" width="780">
+</p>
+<p align="center"><em>Figure 3. Recommender system architecture of DAAR.</em></p>
+
+Model implementation: [`model/daar.py`](model/daar.py) · [Architecture details](model/README.md)
 
 ## Repository Structure
 
 ```text
 DAAR/
-├── assets/                # Overall framework figure
-├── data/                  # Dataset format and preparation notes
-├── model/                 # DAAR network and architecture diagram
-├── preprocessing/         # ATE, postprocessing, embeddings, ABSA
-├── config.yaml            # Model and training settings
-├── train.py               # Train and save test artifacts
-├── evaluate.py            # Evaluate saved model (MAE/MSE/RMSE)
-├── requirements.txt       # Python dependencies
+├── assets/              # Overall framework diagram
+├── data/                # Data format documentation
+├── model/               # DAAR architecture and implementation
+├── preprocessing/       # ATE, aspect embeddings, and sentiment analysis
+├── config.yaml          # Model and training configuration
+├── train.py             # Model training
+├── evaluate.py          # Evaluation (MAE, MSE, RMSE)
+├── requirements.txt     # Python dependencies
 └── README.md
 ```
 
-## Requirements
+## Getting Started
+
+### Requirements
+
+Install dependencies and the spaCy English model:
 
 ```bash
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 ```
 
-ATE requires Hugging Face access to `meta-llama/Llama-3.1-8B-Instruct`. Set `HF_TOKEN` before extraction (e.g., `export HF_TOKEN=YOUR_TOKEN` on Linux/macOS or `$env:HF_TOKEN="YOUR_TOKEN"` in PowerShell). A CUDA-enabled GPU is recommended for LLaMA inference.
+Aspect extraction uses `meta-llama/Llama-3.1-8B-Instruct`, which requires Hugging Face model access. Set `HF_TOKEN` before running ATE. A CUDA-compatible GPU is recommended for LLaMA inference.
 
-## Datasets
+### Datasets
 
-Experiments use **Amazon Baby Products**, **Amazon Office Products**, and **Indiana restaurant reviews from Yelp**.
+The experiments use the following datasets:
 
-- [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/)
-- [Yelp Open Dataset](https://www.yelp.com/dataset)
+| Dataset | Source |
+| --- | --- |
+| Baby Products | [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) |
+| Office Products | [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) |
+| Yelp (Indiana restaurants) | [Yelp Open Dataset](https://www.yelp.com/dataset) |
 
-Raw datasets are not included. Input records need user ID, item ID, rating, and review text. See [`data/README.md`](data/README.md) for column mappings and Yelp subset preparation.
+Raw datasets are not redistributed. See [Data Preparation](data/README.md) for input fields and the Yelp subset description.
 
-## Preprocessing
+### Preprocessing
 
-The commands below use **Baby Products** as an example and assume the fields `user_id`, `asin`, `rating`, and `text`. Adapt column arguments and input paths for other datasets.
+The following example uses **Amazon Baby Products** with the columns `user_id`, `asin`, `rating`, and `text`. Update file paths and column arguments for other datasets.
 
-**1. Aspect term extraction (ATE)**
-
-```bash
-python preprocessing/extract_aspects.py --input data/Baby_Products.jsonl --output data/Baby_Products_ate.json --lines --drop-duplicates --remove-punctuation
-```
-
-Uses LLaMA 3.1-8B-Instruct with 4-bit NF4 quantization, greedy decoding, and `max_new_tokens=100`. The optional punctuation-cleaning flag also replaces Unicode symbols and normalizes whitespace.
-
-**2. Aspect postprocessing**
+**Step 1 — Aspect term extraction (LLaMA 3.1)**
 
 ```bash
-python preprocessing/postprocess_aspects.py --input data/Baby_Products_ate.json --output data/Baby_Products_postprocessed.json --five-core --percentile 75
+python preprocessing/extract_aspects.py \
+  --input data/Baby_Products.jsonl \
+  --output data/Baby_Products_ate.json \
+  --lines --drop-duplicates --remove-punctuation
 ```
 
-Removes out-of-review terms and non-noun single-word terms, drops reviews with no valid aspects, performs 5-core filtering, and truncates to the dataset-specific 75th-percentile aspect length (`K_max`).
-
-**3. Aspect term embeddings**
+**Step 2 — Aspect postprocessing (75th-percentile `K_max`)**
 
 ```bash
-python preprocessing/embed_aspects.py --input data/Baby_Products_postprocessed.json --output data/Baby_Products_embeddings.json
+python preprocessing/postprocess_aspects.py \
+  --input data/Baby_Products_ate.json \
+  --output data/Baby_Products_postprocessed.json \
+  --five-core --percentile 75
 ```
 
-Uses `whaleloops/phrase-bert` to generate 768-dimensional aspect embeddings.
-
-**4. Aspect sentiment classification (ASC)**
+**Step 3 — Aspect embeddings (Phrase-BERT)**
 
 ```bash
-python preprocessing/sentiment_analysis.py --input data/Baby_Products_embeddings.json --output data/Baby_Products_final.json
+python preprocessing/embed_aspects.py \
+  --input data/Baby_Products_postprocessed.json \
+  --output data/Baby_Products_embeddings.json
 ```
 
-Uses `yangheng/deberta-v3-base-absa-v1.1` to obtain negative, neutral, and positive probabilities for each aspect term.
+**Step 4 — Aspect sentiment classification (DeBERTa)**
 
-Additional file-level descriptions are provided in [`preprocessing/README.md`](preprocessing/README.md).
+```bash
+python preprocessing/sentiment_analysis.py \
+  --input data/Baby_Products_embeddings.json \
+  --output data/Baby_Products_final.json
+```
 
-## Training and Evaluation
+For details about each stage, see [Preprocessing](preprocessing/README.md).
 
-Update the dataset path and columns in `config.yaml`, then run:
+### Training and Evaluation
+
+Set the final preprocessed data path and column names in [`config.yaml`](config.yaml), then run:
 
 ```bash
 python train.py --config config.yaml
 python evaluate.py --test-data artifacts/test_data.npz --model checkpoints/daar.keras
 ```
 
-The default split is **7:1:2** (training/validation/test). The model uses Adam and early stopping; shorter aspect sequences are zero-padded and masked. Evaluation uses the corresponding review-derived features, consistent with the paper's *review-available rating prediction* setting.
+The configuration uses a **7:1:2** train/validation/test split and early stopping. The evaluation setting uses review-derived features associated with each target rating, consistent with the study.
 
 ## Experimental Results
 
-Results reported in the manuscript (mean ± standard deviation over **five runs**; lower is better):
+DAAR results from **Table 2 of the manuscript** (mean ± standard deviation over five runs; lower is better):
 
 | Dataset | MAE ↓ | RMSE ↓ |
-| --- | ---: | ---: |
+| :--- | ---: | ---: |
 | Baby Products | **0.408 ± 0.005** | **0.594 ± 0.003** |
 | Office Products | **0.367 ± 0.006** | **0.540 ± 0.002** |
 | Yelp (Indiana) | **0.521 ± 0.005** | **0.672 ± 0.003** |
 
-The provided `train.py` performs one training run; the table reports the paper's five-run results, not the output of a single invocation.
+The provided training script executes a single run; the table reports the five-run results in the paper.
 
 ## Citation
 
-Publication details and the BibTeX entry will be added after publication.
+Publication details and a BibTeX entry will be added after publication.

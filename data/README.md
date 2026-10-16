@@ -1,20 +1,31 @@
-# Data
+# Data Preparation
 
-The Amazon and Yelp raw datasets are **not included** in this repository.
+The datasets used in the paper are publicly available and are **not redistributed** in this repository.
 
-| Dataset | User ID | Item ID | Rating | Review text |
+| Dataset | Source |
+| --- | --- |
+| Baby Products, Office Products | [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) |
+| Yelp restaurants (Indiana) | [Yelp Open Dataset](https://www.yelp.com/dataset) |
+
+## Required Input Fields
+
+Each record needs a user identifier, item identifier, rating, and review text. Column names may vary by dataset version.
+
+| Dataset | User | Item | Rating | Review |
 | --- | --- | --- | --- | --- |
-| Amazon (Baby, Office) example | `user_id` | `asin` | `rating` | `text` |
-| Yelp review records | `user_id` | `business_id` | `stars` | `text` |
+| Amazon example | `user_id` | `asin` | `rating` | `text` |
+| Yelp reviews | `user_id` | `business_id` | `stars` | `text` |
 
-Column names depend on the downloaded dataset version. Rename columns or pass the corresponding arguments to the ATE and postprocessing scripts. For Yelp, select the Indiana restaurant-review subset before preprocessing.
+For Yelp, prepare the Indiana restaurant-review subset before running the preprocessing scripts.
 
-After preprocessing, each record also includes:
+## Generated Fields
 
-- `aspects`: retained aspect terms, truncated using the 75th percentile of aspect counts (`K_max`)
-- `embeddings`: corresponding 768-dimensional Phrase-BERT vectors
-- `sentiments`: corresponding three-dimensional sentiment probability vectors
+| Field | Description |
+| --- | --- |
+| `aspects` | Extracted aspect terms, filtered and truncated to `K_max` |
+| `embeddings` | Corresponding 768-dimensional Phrase-BERT vectors |
+| `sentiments` | Corresponding three-class sentiment probabilities |
 
-During training, sequences shorter than `K_max` are zero-padded and an aspect mask distinguishes valid positions.
+`K_max` is set using the 75th percentile of aspect counts after filtering. Shorter sequences are padded with zero vectors and masked when constructing model inputs.
 
-See the [root README](../README.md) for the complete pipeline and example commands.
+[← Back to the main README](../README.md)
