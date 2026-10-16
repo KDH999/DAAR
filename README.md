@@ -17,7 +17,7 @@ Official implementation of **Domain-Agnostic Aspect-Aware Recommendation (DAAR)*
 DAAR is a review-based rating prediction framework that uses large language models to identify **aspect terms** without predefined aspect categories. It combines their semantic representations and aspect-level sentiment scores with user–item interactions for personalized rating prediction.
 
 <p align="center">
-  <img src="assets/figure2_overall_framework.svg" alt="Figure 2. Overall framework of DAAR" width="850">
+  <img src="assets/Figure 2.png" alt="Figure 2. Overall framework of DAAR" width="850">
 </p>
 <p align="center"><em>Figure 2. Overall framework of DAAR.</em></p>
 
@@ -30,7 +30,7 @@ The recommender system comprises three modules:
 3. **Rating Prediction:** integrates interaction and aspect representations through an MLP to predict ratings.
 
 <p align="center">
-  <img src="model/architecture.svg" alt="Figure 3. DAAR recommender system architecture" width="780">
+  <img src="model/Figure 3.png" alt="Figure 3. DAAR recommender system architecture" width="780">
 </p>
 <p align="center"><em>Figure 3. Recommender system architecture of DAAR.</em></p>
 
