@@ -1,16 +1,41 @@
 # Preprocessing
 
-DAAR prepares review-derived aspect and sentiment representations in four stages, followed by model-input construction.
+DAAR converts review text into aspect-level representations in four stages. The commands below use Amazon Baby Products as an example (columns: `user_id`, `asin`, `rating`, `text`). Adjust dataset paths and column arguments as needed.
 
-| Stage | Script | Output |
-| --- | --- | --- |
-| 1. Aspect Term Extraction | [`extract_aspects.py`](extract_aspects.py) | Aspect terms extracted by LLaMA 3.1 |
-| 2. Postprocessing | [`postprocess_aspects.py`](postprocess_aspects.py) | Filtered aspect terms truncated to `K_max` |
-| 3. Aspect Embedding | [`embed_aspects.py`](embed_aspects.py) | 768-dimensional Phrase-BERT embeddings |
-| 4. Sentiment Classification | [`sentiment_analysis.py`](sentiment_analysis.py) | Negative, neutral, and positive probabilities |
+## 1. Aspect Term Extraction
 
-[`prepare_model_input.py`](prepare_model_input.py) converts the processed records into fixed-length tensors, with zero-padding and an attention mask, for training and evaluation.
+Extract aspect terms using LLaMA 3.1-8B-Instruct (4-bit NF4, greedy decoding, `max_new_tokens=100`):
 
-The scripts accept dataset-specific column names where needed. Full example commands are provided in the [main README](../README.md).
+```bash
+python preprocessing/extract_aspects.py --input data/Baby_Products.jsonl --output data/Baby_Products_ate.json --lines --drop-duplicates --remove-punctuation
+```
 
-[← Back to the main README](../README.md)
+`--remove-punctuation` also normalizes Unicode punctuation, symbols, and whitespace. The model requires Hugging Face access (`HF_TOKEN`).
+
+## 2. Aspect Postprocessing
+
+Remove invalid terms and reviews with no valid aspects, apply 5-core filtering, and truncate to the 75th-percentile aspect count (`K_max`):
+
+```bash
+python preprocessing/postprocess_aspects.py --input data/Baby_Products_ate.json --output data/Baby_Products_postprocessed.json --five-core --percentile 75
+```
+
+## 3. Aspect Embedding
+
+Generate 768-dimensional aspect representations with Phrase-BERT:
+
+```bash
+python preprocessing/embed_aspects.py --input data/Baby_Products_postprocessed.json --output data/Baby_Products_embeddings.json
+```
+
+## 4. Aspect Sentiment Classification
+
+Obtain three-class sentiment probabilities with DeBERTa:
+
+```bash
+python preprocessing/sentiment_analysis.py --input data/Baby_Products_embeddings.json --output data/Baby_Products_final.json
+```
+
+The training script uses [`prepare_model_input.py`](prepare_model_input.py) to encode user/item IDs, zero-pad shorter aspect sequences, and construct attention masks.
+
+For dataset-specific columns and sources, see [Data Preparation](../data/README.md). Continue with training and evaluation in the [main README](../README.md).
