@@ -72,7 +72,7 @@ The experiments use the following datasets:
 | --- | --- |
 | Baby Products | [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) |
 | Office Products | [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) |
-| Yelp (Indiana restaurants) | [Yelp Open Dataset](https://www.yelp.com/dataset) |
+| Yelp | [Yelp Open Dataset](https://www.yelp.com/dataset) |
 
 Raw datasets are not redistributed. See [Data Preparation](data/README.md) for input fields and the Yelp subset description.
 
@@ -135,7 +135,7 @@ DAAR results from **Table 2 of the manuscript** (mean ± standard deviation over
 | :--- | ---: | ---: |
 | Baby Products | **0.408 ± 0.005** | **0.594 ± 0.003** |
 | Office Products | **0.367 ± 0.006** | **0.540 ± 0.002** |
-| Yelp (Indiana) | **0.521 ± 0.005** | **0.672 ± 0.003** |
+| Yelp | **0.521 ± 0.005** | **0.672 ± 0.003** |
 
 The provided training script executes a single run; the table reports the five-run results in the paper.
 
