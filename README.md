@@ -40,7 +40,7 @@ Model implementation: [`model/daar.py`](model/daar.py) · [Architecture details]
 
 ```text
 DAAR/
-├── assets/              # Overall framework diagram
+├── assets/              # Framework figure and documentation
 ├── data/                # Data format documentation
 ├── model/               # DAAR architecture and implementation
 ├── preprocessing/       # ATE, aspect embeddings, and sentiment analysis
