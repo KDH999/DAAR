@@ -11,6 +11,7 @@ data:
 
 preprocessing:
   aspect_embedding_dim: 768
+  # 20% test; 12.5% of the remaining training pool used for validation (7:1:2).
   test_size: 0.20
   validation_split: 0.125
   random_state: 42
