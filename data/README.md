@@ -5,7 +5,7 @@ The datasets used in the paper are publicly available and are **not redistribute
 | Dataset | Source |
 | --- | --- |
 | Baby Products, Office Products | [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) |
-| Yelp restaurants (Indiana) | [Yelp Open Dataset](https://www.yelp.com/dataset) |
+| Yelp | [Yelp Open Dataset](https://www.yelp.com/dataset) |
 
 ## Required Input Fields
 
