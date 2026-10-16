@@ -1,6 +1,6 @@
 # Preprocessing
 
-DAAR converts reviews into aspect-level representations in four stages.
+DAAR prepares review-derived aspect and sentiment representations in four stages, followed by model-input construction.
 
 | Stage | Script | Output |
 | --- | --- | --- |
