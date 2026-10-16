@@ -16,7 +16,7 @@ Each record needs a user identifier, item identifier, rating, and review text. C
 | Amazon example | `user_id` | `asin` | `rating` | `text` |
 | Yelp reviews | `user_id` | `business_id` | `stars` | `text` |
 
-For Yelp, prepare the Indiana restaurant-review subset before running the preprocessing scripts.
+For Yelp, prepare the Indiana restaurant-review subset before running the preprocessing scripts. Map dataset-specific column names through the CLI options and `config.yaml`.
 
 ## Generated Fields
 
