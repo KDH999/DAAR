@@ -3,7 +3,8 @@
 The DAAR recommender system is implemented in [`daar.py`](daar.py).
 
 <p align="center">
-<img src="Figure 3.png" alt="DAAR recommender system architecture" width="780"></p>
+  <img src="Figure 3.png" alt="DAAR recommender system architecture" width="780">
+</p>
 <p align="center"><em>Figure 3. Recommender system architecture of DAAR.</em></p>
 
 | Module | Description |
